@@ -277,7 +277,16 @@ message NetStateRule {
   repeated string stage = 4;
   repeated string not_stage = 5;
 }
-
+// Message that stores parameters used by BN (Batch Normalization)  layer
+message BNParameter {
+  enum BNMode {
+    LEARN = 0;
+    INFERENCE = 1;
+  }
+  optional BNMode bn_mode = 3 [default = LEARN];
+  optional FillerParameter scale_filler = 1;  // The filler for the scale
+  optional FillerParameter shift_filler = 2;  // The filler for the shift
+}
 // Specifies training parameters (multipliers on global learning constants,
 // and the name and other settings used for weight sharing).
 message ParamSpec {
@@ -306,7 +315,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 146 (last added: parameter_param)
+// LayerParameter next available layer-specific ID: 149 (last added: MultiStageMeanfieldParameter)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -402,6 +411,9 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 128;
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
+  optional UpsampleParameter upsample_param = 146;
+  optional BNParameter bn_param = 147;
+  optional MultiStageMeanfieldParameter multi_stage_meanfield_param = 148;
 }
 
 // Message that stores parameters used to apply transformation
@@ -552,6 +564,26 @@ message ContrastiveLossParameter {
   optional bool legacy_version = 2 [default = false];
 }
 
+message UpsampleParameter {
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale = 1 [default = 2];
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale_h = 2;
+  // DEPRECATED. No need to specify upsampling scale factors when
+  // exact output shape is given by upsample_h, upsample_w parameters.
+  optional uint32 scale_w = 3;
+  // DEPRECATED. Specify exact output height using upsample_h. This
+  // parameter only works when scale is 2
+  optional bool pad_out_h = 4 [default = false];
+  // DEPRECATED. Specify exact output width using upsample_w. This
+  // parameter only works when scale is 2
+  optional bool pad_out_w = 5 [default = false];
+  optional uint32 upsample_h = 6;
+  optional uint32 upsample_w = 7;
+}
+
 message ConvolutionParameter {
   optional uint32 num_output = 1; // The number of outputs for the layer
   optional bool bias_term = 2 [default = true]; // whether to have bias terms
@@ -623,6 +655,26 @@ message CropParameter {
   repeated uint32 offset = 2;
 }
 
+message MultiStageMeanfieldParameter {
+    enum Mode {
+      POTTS = 0;
+    }
+    optional Mode compatibility_mode = 1 [default = POTTS];
+    optional float threshold = 2;
+
+    required float theta_alpha = 3 [default = 10.];
+    required float theta_beta = 4 [default = 10.];
+    required float theta_gamma = 5 [default = 10.];
+
+    required uint32 num_iterations = 6 [default = 1];
+    optional float spatial_filter_weight = 7 [default = 1];
+    optional float bilateral_filter_weight = 8 [default = 1];
+
+    optional float forced_spatial_filter_weight = 9;
+    optional float forced_bilateral_filter_weight = 10;
+  }
+  
+
 message DataParameter {
   enum DB {
     LEVELDB = 0;
@@ -659,6 +711,7 @@ message DataParameter {
 
 message DropoutParameter {
   optional float dropout_ratio = 1 [default = 0.5]; // dropout ratio
+  optional bool sample_weights_test = 2 [default = false]; // Sample weights for testing or use the mean
 }
 
 // DummyDataLayer fills any number of arbitrarily shaped blobs with random

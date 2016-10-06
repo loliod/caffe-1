@@ -13,6 +13,19 @@ except:
     else:
         raise
 
+def get_meanvalue_from_binaryproto(binaryprotofile):
+    """
+    Convert a binaryproto that store the meanfile of database to meanvalue.
+    """
+
+    blob = caffe_pb2.BlobProto()
+    data = open( binaryprotofile , 'rb' ).read()
+    blob.ParseFromString(data)
+    arr = np.array( blobproto_to_array(blob) )[0]
+    meanvalue=arr.mean(1).mean(1)
+    return meanvalue
+
+
 
 ## proto / datum / ndarray conversion
 def blobproto_to_array(blob, return_diff=False):
@@ -293,7 +306,33 @@ def load_image(filename, color=True):
         of size (H x W x 3) in RGB or
         of size (H x W x 1) in grayscale.
     """
-    img = skimage.img_as_float(skimage.io.imread(filename, as_grey=not color)).astype(np.float32)
+    img = skimage.img_as_float(skimage.io.imread(filename, as_grey=not color)).astype(np.float)
+    if img.ndim == 2:
+        img = img[:, :, np.newaxis]
+        if color:
+            img = np.tile(img, (1, 1, 3))
+    elif img.shape[2] == 4:
+        img = img[:, :, :3]
+    return img
+
+def load_image_original(filename, color=True):
+    """
+    Load an image converting from grayscale or alpha as needed.
+
+    Parameters
+    ----------
+    filename : string
+    color : boolean
+        flag for color format. True (default) loads as RGB while False
+        loads as intensity (if image is already grayscale).
+
+    Returns
+    -------
+    image : an image with type np.float32 in range [0.0, 255.0]
+        of size (H x W x 3) in RGB or
+        of size (H x W x 1) in grayscale.
+    """
+    img = skimage.io.imread(filename, as_grey=not color).astype(np.float)
     if img.ndim == 2:
         img = img[:, :, np.newaxis]
         if color:
